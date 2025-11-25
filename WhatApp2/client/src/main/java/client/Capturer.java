@@ -1,29 +1,25 @@
 package client;
 
-import com.zeroc.Ice.Communicator;
-import com.zeroc.Ice.ObjectAdapter;
-import com.zeroc.Ice.Util;
+import javax.sound.sampled.AudioFormat;
+
 
 public class Capturer {
+    private String username;
+    private PlayerThread playerThread;
 
-    public static void main(String[] args)throws Exception {
-        Communicator communicator = Util.initialize();
-
-        ObjectAdapter adapter = communicator.createObjectAdapterWithEndpoints("Server", "ws -h 0.0.0.0 -p 9099");
-
-        SubjectImpl impl = new SubjectImpl();
-
-        CallClient sender = new CallClient(impl);
-        sender.init();
-        sender.start();
-
-        adapter.add(impl, Util.stringToIdentity("Subject"));
-
-        adapter.activate();
-
-        communicator.waitForShutdown();
-
-        
+    public Capturer(String username) {
+        this.username = username;
     }
-    
+
+    public void start() throws Exception {
+        AudioFormat format = new AudioFormat(44100, 16, 1, true, true);
+        playerThread = new PlayerThread(format);
+        playerThread.setPlay(true);
+        playerThread.start();
+        System.out.println("Capturer iniciado para: " + username);
+    }
+
+    public void stop() {
+        if(playerThread != null) playerThread.setPlay(false);
+    }
 }

@@ -6,36 +6,41 @@ class Subscriber extends Demo.Observer {
     }
 
     notifyMessage(bytes) {
-       const ctx = new AudioContext();
-    const buffer = ctx.createBuffer(1, bytes.length, ctx.sampleRate);
-    const channel = buffer.getChannelData(0);
-
-    for (let i = 0; i < bytes.length; i++) {
-        channel[i] = bytes[i] / 0x7FFF;
-    }
-
-    const src = ctx.createBufferSource();
-    src.buffer = buffer;
-    src.connect(ctx.destination);
-    src.start();
-    }
-
-    onCallStarted(sessionId) {
-        console.log("Llamada entrante:", sessionId);
-        window.renderChatPage_showIncomingCallUI(sessionId);
-        window.renderChatPage_openMicrophone(sessionId);
-    }
-
-    onCallEnded(sessionId) {
-        console.log("Llamada finalizada:", sessionId);
-
-        if (window.localStream) {
-            window.localStream.getTracks().forEach(t => t.stop());
-            window.localStream = null;
+        try {
+            console.log('[Subscriber] notifyMessage recibido, bytes:', bytes ? bytes.length : 0);
+            if (this.delegate && this.delegate.notify) {
+                this.delegate.notify(bytes);
+            }
+        } catch (err) {
+            console.error('[Subscriber] Error en notifyMessage:', err);
         }
+    }
 
-        if (window.renderChatPage_onCallEndedUI) {
-            window.renderChatPage_onCallEndedUI();
+    onCallStarted(sessionId, caller, receiver) {
+        try {
+            console.log('[Subscriber] onCallStarted recibido con sessionId:', sessionId, 'caller:', caller, 'receiver:', receiver);
+            if (this.delegate && this.delegate.notifyCallStarted) {
+                this.delegate.notifyCallStarted(sessionId, caller, receiver);
+            }
+            if (window.renderChatPage_showIncomingCallUI) {
+                window.renderChatPage_showIncomingCallUI(sessionId, caller, receiver);
+            }
+        } catch (err) {
+            console.error('[Subscriber] Error en onCallStarted:', err);
+        }
+    }
+
+    onCallEnded(sessionId, caller, receiver) {
+        try {
+            console.log('[Subscriber] onCallEnded recibido con sessionId:', sessionId, 'caller:', caller, 'receiver:', receiver);
+            if (this.delegate && this.delegate.notifyCallEnded) {
+                this.delegate.notifyCallEnded(sessionId, caller, receiver);
+            }
+            if (window.renderChatPage_onCallEndedUI) {
+                window.renderChatPage_onCallEndedUI();
+            }
+        } catch (err) {
+            console.error('[Subscriber] Error en onCallEnded:', err);
         }
     }
 }

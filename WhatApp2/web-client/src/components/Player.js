@@ -53,7 +53,7 @@ const Player = () => {
   const button = document.createElement('button');
   button.textContent = 'Play';
   button.onclick = () => {
-    delegate.subscribe(playAudio);
+    delegate.subscribeAudio(playAudio);
     container.innerText = 'Reproduciendo ...';
   };
 

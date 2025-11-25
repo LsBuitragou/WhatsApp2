@@ -41,15 +41,12 @@ const sendMessage = async (from, to, msg) => {
 
 const startCall = async (from, to) => {
   try {
-
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    window.localStream = stream;
-
     if (!delegate.subject || delegate.username !== from) {
       console.log('[UserService] Inicializando delegate con username:', from);
       await delegate.init(from);
     }
 
+    // Llamada al backend para iniciar la CallSession
     const result = await delegate.subject.startCall(from, to);
     console.log("Llamada iniciada:", result);
     return result;

@@ -62,8 +62,8 @@
     Slice.defineOperations(Demo.Subject, Demo.SubjectPrx, iceC_Demo_Subject_ids, 0,
     {
         "attachObserver": [, , , , , [["Demo.ObserverPrx"], [7]], , , , ],
-        "startCall": [, , , , [7], [[7], [7]], , , , ],
         "sendAudio": [, , , , , [[7], ["Demo.BytesHelper"]], , , , ],
+        "startCall": [, , , , [7], [[7], [7]], , , , ],
         "endCall": [, , , , , [[7]], , , , ]
     });
     exports.Demo = Demo;

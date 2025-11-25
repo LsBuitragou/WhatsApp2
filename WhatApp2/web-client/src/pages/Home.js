@@ -23,15 +23,22 @@ export function renderWelcome() {
     if (!name) return alert("Por favor ingresa un nombre");
 
     try {
+      console.log('[Home.js] Iniciando login para:', name);
       const data = await onLogin(name);
+      console.log('[Home.js] Respuesta de login:', data);
+      
       if (data.status === "ok") {
+        console.log('[Home.js] Login exitoso, guardando username y inicializando delegate');
         localStorage.setItem("username", name);
         await delegate.init(name);
+        console.log('[Home.js] Delegate inicializado, navegando a #/home');
         window.location.hash = "#/home";
       } else {
-        alert("Error al crear el usuario");
+        console.error('[Home.js] Login falló, status:', data.status);
+        alert("Error al crear el usuario: " + JSON.stringify(data));
       }
     } catch (err) {
+      console.error('[Home.js] Excepción en login:', err);
       alert(err.message);
     }
   });

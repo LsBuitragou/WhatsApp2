@@ -13,61 +13,55 @@ import java.util.UUID;
 public class CallSession {
 
     private final String sessionId;
-    private final Set<ObserverPrx> participants;
+    private final String caller;
+    private final String receiver;
+    private final ObserverPrx callerProxy;
+    private final ObserverPrx receiverProxy;
     private boolean active;
 
-    public CallSession() {
+    public CallSession(String caller, ObserverPrx callerProxy, String receiver, ObserverPrx receiverProxy) {
         this.sessionId = UUID.randomUUID().toString();
-        this.participants = new HashSet<>();
+        this.caller = caller;
+        this.receiver = receiver;
+        this.callerProxy = callerProxy;
+        this.receiverProxy = receiverProxy;
         this.active = true;
-    }
 
-    public String getSessionId() {
-        return sessionId;
-    }
-
-    public boolean isActive() {
-        return active;
-    }
-
-    public void endSession() {
-        this.active = false;
-    }
-
-    public void addParticipant(ObserverPrx observer) {
-        if (observer == null) {
-            throw new IllegalArgumentException("Cannot add null participant to CallSession");
-        }
-        participants.add(observer);
+        // notify both participants about the started call, include caller/receiver info
         try {
-            // Notificar de forma asíncrona para evitar bloquear el hilo del servidor
-            observer.onCallStartedAsync(sessionId);
+            callerProxy.onCallStartedAsync(sessionId, caller, receiver);
         } catch (Exception e) {
-            // Fallback: intentar notificación síncrona si la asíncrona falla
-            try { observer.onCallStarted(sessionId); } catch (Exception ex) {}
+            try { callerProxy.onCallStarted(sessionId, caller, receiver); } catch (Exception ex) {}
+        }
+
+        try {
+            receiverProxy.onCallStartedAsync(sessionId, caller, receiver);
+        } catch (Exception e) {
+            try { receiverProxy.onCallStarted(sessionId, caller, receiver); } catch (Exception ex) {}
         }
     }
 
-    public void removeParticipant(ObserverPrx observer) {
-        participants.remove(observer);
+    public String getSessionId() { return sessionId; }
+    public String getCaller() { return caller; }
+    public String getReceiver() { return receiver; }
+    public ObserverPrx getCallerProxy() { return callerProxy; }
+    public ObserverPrx getReceiverProxy() { return receiverProxy; }
+
+    public boolean isActive() { return active; }
+    public void endSession() { this.active = false; }
+
+    public void notifyEnd() {
+        try {
+            callerProxy.onCallEndedAsync(sessionId, caller, receiver);
+        } catch (Exception e) {
+            try { callerProxy.onCallEnded(sessionId, caller, receiver); } catch (Exception ex) {}
+        }
+        try {
+            receiverProxy.onCallEndedAsync(sessionId, caller, receiver);
+        } catch (Exception e) {
+            try { receiverProxy.onCallEnded(sessionId, caller, receiver); } catch (Exception ex) {}
+        }
     }
 
-    public Set<ObserverPrx> getParticipants() {
-        return participants;
-    }
-
-    public ObserverPrx getFirstParticipant() {
-        Set<ObserverPrx> mySet = participants;
-        Iterator<ObserverPrx> iterator = mySet.iterator();
-
-        return iterator.next();
-    }
-
-    public ObserverPrx getSecondParticipant() {
-        Set<ObserverPrx> mySet = participants;
-        Iterator<ObserverPrx> iterator = mySet.iterator();
-        iterator.next();
-        return iterator.next();
-    }
 }
 

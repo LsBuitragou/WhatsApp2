@@ -33,9 +33,8 @@ public class CallManager {
             throw new IllegalStateException("Receiver already in call");
         }
     
-        CallSession session = new CallSession();
-        session.addParticipant(initiator);
-        session.addParticipant(receiver);
+        // We don't have usernames here; create CallSession with placeholders for caller/receiver
+        CallSession session = new CallSession("unknownCaller", initiator, "unknownReceiver", receiver);
         activeCalls.put(session.getSessionId(), session);
         return session;
     }
@@ -52,7 +51,8 @@ public class CallManager {
     // Buscar llamada en la que participa un usuario
     public CallSession findCallByParticipant(ObserverPrx participant) {
         for (CallSession session : activeCalls.values()) {
-            if (session.getParticipants().contains(participant) && session.isActive()) {
+            if ((session.getCallerProxy() != null && session.getCallerProxy().equals(participant) ||
+                 session.getReceiverProxy() != null && session.getReceiverProxy().equals(participant)) && session.isActive()) {
                 return session;
             }
         }

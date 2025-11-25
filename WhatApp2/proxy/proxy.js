@@ -111,20 +111,27 @@ async function sendCommand(username, command) {
 
     const onData = (chunk) => {
       collected += chunk.toString('utf8');
+      console.log(`[sendCommand][${username}] data recibida: "${collected}"`);
       // Heurística: primera línea/OK/ERR
       if (/\n|OK:|ERR:/i.test(collected)) {
         cleanup();
         done = true;
+        console.log(`[sendCommand][${username}] resolviendo con: "${collected.trim()}"`);
         resolve(collected.trim());
       }
     };
     const cleanup = () => { try { socket.off('data', onData); } catch {} };
 
     socket.on('data', onData);
+    console.log(`[sendCommand][${username}] enviando comando: "${command}"`);
     socket.write(command + '\n');
 
     setTimeout(() => {
-      if (!done) { cleanup(); resolve(collected.trim() || 'Timeout: no response from command'); }
+      if (!done) { 
+        console.log(`[sendCommand][${username}] TIMEOUT después de 5s, collected="${collected}"`);
+        cleanup(); 
+        resolve(collected.trim() || 'Timeout: no response from command'); 
+      }
     }, 5000);
   });
 }
@@ -134,11 +141,14 @@ app.post('/api/login', async (req, res) => {
   try {
     const { username } = req.body || {};
     if (!username) return res.status(400).json({ error: 'Username requerido' });
+    console.log(`[/api/login] Intentando conectar usuario: ${username}`);
     await getClient(username);
-    console.log(`[HTTP] Usuario ${username} conectado`);
-    res.json({ status: 'ok', user: { name: username } });
+    console.log(`[/api/login] Usuario ${username} conectado exitosamente`);
+    const response = { status: 'ok', user: { name: username } };
+    console.log(`[/api/login] Respondiendo:`, response);
+    res.json(response);
   } catch (err) {
-    console.error('Error /api/login:', err);
+    console.error('[/api/login] Error:', err);
     res.status(500).json({ error: err.message });
   }
 });

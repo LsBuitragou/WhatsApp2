@@ -6,6 +6,10 @@ export const renderChatPage = (username, contact) => {
   const app = document.getElementById("app");
   app.innerHTML = "";
 
+  // Estado de la llamada
+  let currentSessionId = null;
+  let localStream = null;
+
   // Barra superior del usuario
   const userbar = renderUserBar({ name: username });
   app.appendChild(userbar);
@@ -29,7 +33,7 @@ export const renderChatPage = (username, contact) => {
   messagesDiv.classList.add("messages");
   chatContainer.appendChild(messagesDiv);
 
-  //Llamada activada
+  // Llamada activada
   const callDiv = document.createElement("div");
   callDiv.classList.add("callBox");
   const callStatus = document.createElement("p");
@@ -39,8 +43,8 @@ export const renderChatPage = (username, contact) => {
   hangupBtn.classList.add("btn");
   callDiv.appendChild(callStatus);
   callDiv.appendChild(hangupBtn);
+  callDiv.style.display = "none"; // Oculta por defecto
   chatContainer.appendChild(callDiv);
-
 
   // ---- util de render ----
   const append = (kind, text) => {
@@ -56,7 +60,6 @@ export const renderChatPage = (username, contact) => {
     const to = contact;
 
     try {
-        
         await startCall(from, to);
         alert("Llamada iniciada!");
     } catch (err) {
@@ -65,62 +68,72 @@ export const renderChatPage = (username, contact) => {
     }
   };
 
-  const showIncomingCallUI = (sessionId) => {
+  const showIncomingCallUI = (sessionId, caller, receiver) => {
+    currentSessionId = sessionId;
+    callDiv.style.display = "block";
     callDiv.classList.add("active");
-    callStatus.textContent = "Llamada entrante...";
-    callStatus.classList.add("active");
+    callStatus.textContent = `Llamada de ${caller}`;
+    // Auto-accept: directly activate the call without waiting for user click
+    console.log('[Chat] Auto-aceptando llamada con sessionId:', sessionId);
   };
 
- async function openMicrophone(sessionId) {
-    window.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  const onCallEndedUI = (sessionId) => {
+    currentSessionId = null;
+    callDiv.classList.remove("active");
+    callStatus.textContent = "";
+  };
 
-    const ctx = new AudioContext({ sampleRate: 44100 });
-    const mic = ctx.createMediaStreamSource(localStream);
 
-    // ScriptProcessor (obsoleto, pero compatible y fácil)
-    const processor = ctx.createScriptProcessor(2048, 1, 1);
-
-    processor.onaudioprocess = (e) => {
-        const float32 = e.inputBuffer.getChannelData(0);
-        const pcm16 = float32ToPCM16(float32);
-        delegate.subject.sendAudio(sessionId, pcm16);
-    };
-
-    mic.connect(processor);
-    processor.connect(ctx.destination); // eco local opcional
-}
-
-function float32ToPCM16(float32) {
-    const pcm16 = new Int16Array(float32.length);
-    for (let i = 0; i < float32.length; i++) {
-        pcm16[i] = float32[i] * 0x7fff;
-    }
-    return pcm16;
-}
-
-const endCall = async () => {
+  // Reproducción local de audio entrante (callback para delegate)
+  const playAudioLocal = (arrayBuffer) => {
     try {
-        console.log("Finalizando llamada en UI…");
-
-        await userServiceEndCall(currentSessionId);
-
-        // Apagas el micrófono y limpias MediaStream
-        if (localStream) {
-            localStream.getTracks().forEach(t => t.stop());
-            localStream = null;
-        }
-
-        // Ocultar UI
-        callBox.classList.remove("active");
-        callStatus.classList.remove("active");
-        
+      const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 44100 });
+      const floatArray = convertPCM16ToFloat32(arrayBuffer);
+      const audioBuffer = ctx.createBuffer(1, floatArray.length, 44100);
+      audioBuffer.getChannelData(0).set(floatArray);
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+      source.start();
     } catch (err) {
-        console.error("Error al finalizar llamada:", err);
+      console.error('playAudioLocal error', err);
     }
-};
+  };
+
+  const convertPCM16ToFloat32 = (arrayBuffer) => {
+    const buffer = arrayBuffer instanceof ArrayBuffer ? arrayBuffer : arrayBuffer.buffer;
+    const view = new DataView(buffer);
+    const float32Array = new Float32Array(buffer.byteLength / 2);
+    for (let i = 0; i < float32Array.length; i++) {
+      const sample = view.getInt16(i * 2, false);
+      float32Array[i] = sample / 32768;
+    }
+    return float32Array;
+  };
+
+  const endCall = async () => {
+    try {
+      console.log("Finalizando llamada...");
+
+      if (currentSessionId && delegate && delegate.subject) {
+        await delegate.subject.endCall(currentSessionId);
+      }
+
+      if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+      }
+
+      callDiv.style.display = "none";
+      currentSessionId = null;
+    } catch (err) {
+      console.error("Error al finalizar llamada:", err);
+    }
+  };
 
   call.addEventListener("click", doCall);
   hangupBtn.addEventListener("click", endCall);
+
 
   // ===== Stream SSE =====
   try {
@@ -191,8 +204,8 @@ const endCall = async () => {
 
   window.renderChatPage_showIncomingCallUI = showIncomingCallUI;
   window.renderChatPage_onCallEndedUI = onCallEndedUI;
-  window.renderChatPage_openMicrophone = openMicrophone;
   window.renderChatPage_endCall = endCall;
+
   app.appendChild(chatContainer);
 };
 

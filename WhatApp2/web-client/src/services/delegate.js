@@ -3,11 +3,14 @@ export class IceDelegatge {
   constructor() {
     this.communicator = Ice.initialize();
     this.callbacks = [];
+    this.audioCallbacks = [];
+    this.callCallbacks = [];
     this.subscriber = new Subscriber(this);
     this.username = null;
+    this.subject = null;
   }
   async init(name) {
-    // Si se proporciona nombre, guardarlo; si no, usar el almacenado o el de localStorage
+
     if (name) {
       this.username = name;
     } else if (!this.username) {
@@ -45,17 +48,43 @@ export class IceDelegatge {
   }
 
   subscribe(callback){
-    this.callbacks.push(callback);
+    // backward compat: subscribe -> audio callbacks
+    this.audioCallbacks.push(callback);
+  }
+
+  subscribeAudio(callback) {
+    this.audioCallbacks.push(callback);
+  }
+
+  subscribeCall(callback) {
+    this.callCallbacks.push(callback);
   }
 
   notify(bytes){
-    this.callbacks.forEach(calback => {
-        calback(bytes)
+    this.audioCallbacks.forEach(calback => {
+        try { calback(bytes); } catch(e) { console.error('delegate.notify audio cb error', e); }
     })
   }
-  
-  notifyCallStarted(sessionId) {
-    this.callbacks.forEach(calback => calback(sessionId));
+
+  notifyCallStarted(sessionId, caller, receiver) {
+    this.callCallbacks.forEach(calback => {
+        try { calback(sessionId, caller, receiver); } catch(e) { console.error('delegate.notifyCallStarted cb error', e); }
+    });
+  }
+
+  // Send audio bytes to the Subject via Ice
+  async sendAudio(sessionId, sender, bytes) {
+    try {
+      if (!this.subject) {
+        console.warn('[IceDelegate] subject not initialized when sending audio, initializing with username:', this.username);
+        await this.init(this.username);
+      }
+      // Ensure bytes is Uint8Array
+      const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+      await this.subject.sendAudio(sessionId, sender, data);
+    } catch (err) {
+      console.error('[IceDelegate] Error sending audio via Ice:', err);
+    }
   }
 
 }
