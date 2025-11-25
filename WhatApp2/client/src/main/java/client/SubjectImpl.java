@@ -2,11 +2,11 @@ package client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.HashMap;
-
+import java.util.Iterator;
 import com.zeroc.Ice.Current;
-
 import Demo.ObserverPrx;
 import Demo.Subject;
 import call.CallManager;
@@ -41,12 +41,18 @@ public class SubjectImpl implements Subject {
 
         ObserverPrx caller = lookup(callerUsername);
         ObserverPrx receiver = lookup(receiverUsername);
-        CallSession session = callManager.createCall(caller, receiver);
 
-        for (ObserverPrx ob : session.getParticipants()) {
-            ob.onCallStartedAsync(session.getSessionId());
+        if (caller == null) {
+            System.out.println("startCall failed: caller observer not found: " + callerUsername);
+            throw new IllegalArgumentException("Caller observer not found: " + callerUsername);
         }
 
+        if (receiver == null) {
+            System.out.println("startCall failed: receiver observer not found: " + receiverUsername);
+            throw new IllegalArgumentException("Receiver observer not found: " + receiverUsername);
+        }
+
+        CallSession session = callManager.createCall(caller, receiver);
         return session.getSessionId();
     }
 
@@ -62,15 +68,21 @@ public class SubjectImpl implements Subject {
 
     @Override
     public void endCall(String sessionId, Current current) {
-        CallSession session = callManager.getSession(sessionId);
-        if (session == null) return;
+    System.out.println("[Subject] Finalizando llamada con sessionId = " + sessionId);
 
-        for (ObserverPrx ob : session.getParticipants()) {
-            ob.onCallEndedAsync(sessionId);
-        }
+    // 1. Quitar la sesión del mapa de llamadas
+    CallSession session=callManager.getSession(sessionId);
+    callManager.endCall(sessionId);
 
-        callManager.endCall(sessionId);
-    }
+    // 2. Notificar a ambos usuarios
+    if (session.getFirstParticipant() != null)
+        session.getFirstParticipant().onCallEnded(sessionId);
+
+    if (session.getSecondParticipant() != null)
+        session.getSecondParticipant().onCallEnded(sessionId);
+
+    System.out.println("Llamada finalizada exitosamente.");
+}
 
     public void notifyObs(byte[] data) {
         for (ObserverPrx ob : globalObservers) {
@@ -80,5 +92,14 @@ public class SubjectImpl implements Subject {
 
     private ObserverPrx lookup(String username) {
     return observerRegistry.get(username);
-}
+    }
+
+    public void sendAudio(String sessionId, byte[] audio) {
+    Set<ObserverPrx> mySet = callManager.getSession(sessionId).getParticipants();
+    Iterator<ObserverPrx> iterator = mySet.iterator();
+
+    iterator.next();
+    ObserverPrx other = iterator.next();
+    other.notifyMessage(audio);
+    }
 }

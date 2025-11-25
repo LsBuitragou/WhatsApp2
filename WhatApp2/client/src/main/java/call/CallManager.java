@@ -17,6 +17,14 @@ public class CallManager {
 
     // Crear una nueva llamada entre dos usuarios
     public CallSession createCall(ObserverPrx initiator, ObserverPrx receiver) {
+        if (initiator == null) {
+            throw new IllegalArgumentException("Initiator observer is null");
+        }
+
+        if (receiver == null) {
+            throw new IllegalArgumentException("Receiver observer is null");
+        }
+
         if (findCallByParticipant(initiator) != null){
             throw new IllegalStateException("Initiator already in call");
         }

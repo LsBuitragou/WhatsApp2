@@ -3,6 +3,7 @@ package call;
 
 import Demo.ObserverPrx;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.UUID;
 
@@ -34,8 +35,17 @@ public class CallSession {
     }
 
     public void addParticipant(ObserverPrx observer) {
+        if (observer == null) {
+            throw new IllegalArgumentException("Cannot add null participant to CallSession");
+        }
         participants.add(observer);
-        observer.onCallStarted(sessionId);
+        try {
+            // Notificar de forma asíncrona para evitar bloquear el hilo del servidor
+            observer.onCallStartedAsync(sessionId);
+        } catch (Exception e) {
+            // Fallback: intentar notificación síncrona si la asíncrona falla
+            try { observer.onCallStarted(sessionId); } catch (Exception ex) {}
+        }
     }
 
     public void removeParticipant(ObserverPrx observer) {
@@ -44,6 +54,20 @@ public class CallSession {
 
     public Set<ObserverPrx> getParticipants() {
         return participants;
+    }
+
+    public ObserverPrx getFirstParticipant() {
+        Set<ObserverPrx> mySet = participants;
+        Iterator<ObserverPrx> iterator = mySet.iterator();
+
+        return iterator.next();
+    }
+
+    public ObserverPrx getSecondParticipant() {
+        Set<ObserverPrx> mySet = participants;
+        Iterator<ObserverPrx> iterator = mySet.iterator();
+        iterator.next();
+        return iterator.next();
     }
 }
 

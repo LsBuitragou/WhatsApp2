@@ -4,7 +4,7 @@ const net = require('net');
 const cors = require('cors');
 
 const HTTP_PORT = process.env.HTTP_PORT ? parseInt(process.env.HTTP_PORT, 10) : 3002;
-const BACKEND_HOST = process.env.BACKEND_HOST || 'localhost';
+const BACKEND_HOST = process.env.BACKEND_HOST || '127.0.0.1';
 const BACKEND_PORT = process.env.BACKEND_PORT ? parseInt(process.env.BACKEND_PORT, 10) : 12345;
 
 // username -> net.Socket

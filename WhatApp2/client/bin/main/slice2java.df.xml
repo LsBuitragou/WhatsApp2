@@ -1,0 +1,15 @@
+<state>
+  <timestamp value='1764035103378' />
+  <sourceSet name='default'>
+    <source name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\Player.ice'>
+      <file name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\client\build\generated-src\Demo\Observer.java' />
+      <file name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\client\build\generated-src\Demo\Subject.java' />
+      <file name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\client\build\generated-src\Demo\ObserverPrx.java' />
+      <file name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\client\build\generated-src\Demo\_ObserverPrxI.java' />
+      <file name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\client\build\generated-src\Demo\SubjectPrx.java' />
+      <file name='C:\Users\ASUS\Desktop\WhatsApp2\WhatApp2\client\build\generated-src\Demo\_SubjectPrxI.java' />
+    </source>
+    <arg value='C:\Program Files\ZeroC\Ice-3.7.10\\bin\slice2java.exe' />
+    <arg value='-IC:\Program Files\ZeroC\Ice-3.7.10\\slice' />
+  </sourceSet>
+</state>

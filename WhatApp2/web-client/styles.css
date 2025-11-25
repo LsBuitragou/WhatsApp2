@@ -218,3 +218,40 @@ body {
 .chat-send:hover {
   background: #43a047;
 }
+
+.callBox {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 280px;
+  padding: 16px;
+  background: #1e1e1e;
+  color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+  flex-direction: column;
+  gap: 10px;
+  z-index: 1000;
+  font-family: Arial, sans-serif;
+
+  /* Eliminar esta línea rota */
+  /* display: none; */
+
+  opacity: 0;
+  pointer-events: none;  /* para que no se pueda interactuar mientras está invisible */
+  transition: opacity 0.3s ease;
+}
+
+.callBox.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.callStatus {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.callStatus.active {
+  opacity: 1;
+}

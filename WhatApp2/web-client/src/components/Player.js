@@ -3,7 +3,12 @@ import delegate from './../services/delegate.js';
 const Player = () => {
   const container = document.createElement('div');
   const audioCtx = new AudioContext({ sampleRate: 44100 });
-  delegate.init();
+  const username = localStorage.getItem('username');
+  if (username) {
+    delegate.init(username);
+  } else {
+    delegate.init();
+  }
 
   let bufferQueue = [];
   let isPlaying = false;

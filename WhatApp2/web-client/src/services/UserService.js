@@ -1,4 +1,6 @@
 
+import delegate from './delegate.js';
+
 const onLogin = async (username) => {
   try {
     const response = await fetch("http://localhost:3002/api/login", {
@@ -38,16 +40,32 @@ const sendMessage = async (from, to, msg) => {
 };
 
 const startCall = async (from, to) => {
- try {
+  try {
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    window.localStream = stream;
+
+    if (!delegate.subject || delegate.username !== from) {
+      console.log('[UserService] Inicializando delegate con username:', from);
+      await delegate.init(from);
+    }
+
     const result = await delegate.subject.startCall(from, to);
     console.log("Llamada iniciada:", result);
     return result;
-
   } catch (err) {
-    console.error("Error iniciando llamada:", err);
+    console.error("Error iniciando llamada en UserService:", err);
     throw err;
   }
 };
 
+const userServiceEndCall = async (sessionId) => {
+    try {
+        return await delegate.subject.endCall(sessionId);
+    } catch (err) {
+        console.error("[UserService] Error al terminar llamada:", err);
+        throw err;
+    }
+};
 
-export {onLogin, sendMessage, startCall};
+export {onLogin, sendMessage, startCall, userServiceEndCall};

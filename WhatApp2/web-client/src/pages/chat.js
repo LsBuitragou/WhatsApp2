@@ -1,5 +1,6 @@
 import renderUserBar from "../components/UserBar.js";
 import { sendMessage, startCall } from "../services/UserService.js";
+import delegate from "../services/delegate.js";
 
 export const renderChatPage = (username, contact) => {
   const app = document.getElementById("app");
@@ -16,8 +17,8 @@ export const renderChatPage = (username, contact) => {
   // Título
   const title = document.createElement("h3");
   const call = document.createElement("button");
-  call.classList.add("Btn");
-  call.classList.add("callBtn");
+  call.classList.add("btn");
+  call.textContent = "Llamar";
   title.textContent = `Chat con ${contact}`;
   title.classList.add("chat-title");
   chatContainer.appendChild(title);
@@ -27,6 +28,19 @@ export const renderChatPage = (username, contact) => {
   const messagesDiv = document.createElement("div");
   messagesDiv.classList.add("messages");
   chatContainer.appendChild(messagesDiv);
+
+  //Llamada activada
+  const callDiv = document.createElement("div");
+  callDiv.classList.add("callBox");
+  const callStatus = document.createElement("p");
+  callStatus.textContent = "Llamada en curso...";
+  const hangupBtn = document.createElement("button");
+  hangupBtn.textContent = "Colgar";
+  hangupBtn.classList.add("btn");
+  callDiv.appendChild(callStatus);
+  callDiv.appendChild(hangupBtn);
+  chatContainer.appendChild(callDiv);
+
 
   // ---- util de render ----
   const append = (kind, text) => {
@@ -42,14 +56,71 @@ export const renderChatPage = (username, contact) => {
     const to = contact;
 
     try {
-        await doCall(from, to);
+        
+        await startCall(from, to);
         alert("Llamada iniciada!");
-    } catch {
-        alert("No se pudo iniciar la llamada");
-    }};
+    } catch (err) {
+        console.error("Error al iniciar llamada:", err);
+        alert("No se pudo iniciar la llamada: " + (err.message || err.toString()));
+    }
+  };
 
+  const showIncomingCallUI = (sessionId) => {
+    callDiv.classList.add("active");
+    callStatus.textContent = "Llamada entrante...";
+    callStatus.classList.add("active");
+  };
 
-  callBtn.addEventListener("click", doCall);
+ async function openMicrophone(sessionId) {
+    window.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    const ctx = new AudioContext({ sampleRate: 44100 });
+    const mic = ctx.createMediaStreamSource(localStream);
+
+    // ScriptProcessor (obsoleto, pero compatible y fácil)
+    const processor = ctx.createScriptProcessor(2048, 1, 1);
+
+    processor.onaudioprocess = (e) => {
+        const float32 = e.inputBuffer.getChannelData(0);
+        const pcm16 = float32ToPCM16(float32);
+        delegate.subject.sendAudio(sessionId, pcm16);
+    };
+
+    mic.connect(processor);
+    processor.connect(ctx.destination); // eco local opcional
+}
+
+function float32ToPCM16(float32) {
+    const pcm16 = new Int16Array(float32.length);
+    for (let i = 0; i < float32.length; i++) {
+        pcm16[i] = float32[i] * 0x7fff;
+    }
+    return pcm16;
+}
+
+const endCall = async () => {
+    try {
+        console.log("Finalizando llamada en UI…");
+
+        await userServiceEndCall(currentSessionId);
+
+        // Apagas el micrófono y limpias MediaStream
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+
+        // Ocultar UI
+        callBox.classList.remove("active");
+        callStatus.classList.remove("active");
+        
+    } catch (err) {
+        console.error("Error al finalizar llamada:", err);
+    }
+};
+
+  call.addEventListener("click", doCall);
+  hangupBtn.addEventListener("click", endCall);
 
   // ===== Stream SSE =====
   try {
@@ -117,5 +188,11 @@ export const renderChatPage = (username, contact) => {
   inputContainer.appendChild(sendBtn);
   chatContainer.appendChild(inputContainer);
 
+
+  window.renderChatPage_showIncomingCallUI = showIncomingCallUI;
+  window.renderChatPage_onCallEndedUI = onCallEndedUI;
+  window.renderChatPage_openMicrophone = openMicrophone;
+  window.renderChatPage_endCall = endCall;
   app.appendChild(chatContainer);
 };
+
