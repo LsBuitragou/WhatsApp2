@@ -255,3 +255,82 @@ body {
 .callStatus.active {
   opacity: 1;
 }
+
+/* Fondo translúcido detrás del modal */
+.incoming-call-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+/* Caja principal del modal */
+.incoming-call-modal {
+  background: #ffffff;
+  padding: 25px 35px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* Texto del modal */
+.call-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222;
+  text-align: center;
+}
+
+/* Contenedor de botones */
+.button-container {
+  display: flex;
+  gap: 15px;
+}
+
+/* Botones */
+.btn {
+  padding: 10px 22px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.2s ease;
+}
+
+.btn:hover {
+  transform: scale(1.05);
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+/* Estilos específicos */
+.btn.accept {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn.accept:hover {
+  background-color: #43a047;
+}
+
+.btn.reject {
+  background-color: #f44336;
+  color: white;
+}
+
+.btn.reject:hover {
+  background-color: #e53935;
+}

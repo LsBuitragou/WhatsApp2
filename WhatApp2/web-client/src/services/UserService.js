@@ -11,6 +11,11 @@ const onLogin = async (username) => {
 
     const data = await response.json();
     console.log("Usuario creado:", data);
+    await delegate.init(username);
+    delegate.onIncoming((from) => alert(`${from} te está llamando`));
+    delegate.onAccepted((from) => alert(`${from} aceptó tu llamada`));
+    delegate.onRejected((from) => alert(`${from} rechazó tu llamada`));
+    delegate.onEnded((from) => alert(`${from} colgó`));
     return data;
   } catch (error) {
     console.error("Error:", error);
@@ -41,15 +46,16 @@ const sendMessage = async (from, to, msg) => {
 
 const startCall = async (from, to) => {
   try {
-    if (!delegate.subject || delegate.username !== from) {
+    if (!delegate.subject || delegate.name !== from) {
       console.log('[UserService] Inicializando delegate con username:', from);
       await delegate.init(from);
     }
 
-    // Llamada al backend para iniciar la CallSession
-    const result = await delegate.subject.startCall(from, to);
-    console.log("Llamada iniciada:", result);
-    return result;
+    await delegate.startCall(to);
+
+    console.log(`[UserService] Llamada iniciada de ${from} a ${to}`);
+    return true;
+
   } catch (err) {
     console.error("Error iniciando llamada en UserService:", err);
     throw err;

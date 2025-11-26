@@ -31,6 +31,7 @@ export function renderWelcome() {
         console.log('[Home.js] Login exitoso, guardando username y inicializando delegate');
         localStorage.setItem("username", name);
         await delegate.init(name);
+        
         console.log('[Home.js] Delegate inicializado, navegando a #/home');
         window.location.hash = "#/home";
       } else {

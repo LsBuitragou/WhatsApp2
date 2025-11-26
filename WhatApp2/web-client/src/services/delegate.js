@@ -1,92 +1,110 @@
 import Subscriber from './subscriber.js';
-export class IceDelegatge {
+
+class IceDelegate {
   constructor() {
     this.communicator = Ice.initialize();
-    this.callbacks = [];
-    this.audioCallbacks = [];
-    this.callCallbacks = [];
-    this.subscriber = new Subscriber(this);
-    this.username = null;
     this.subject = null;
-  }
-  async init(name) {
 
-    if (name) {
-      this.username = name;
-    } else if (!this.username) {
-      this.username = localStorage.getItem('username') || '';
-    }
+    this.name = null;
+    this.currentCall = null;
 
-    console.log('[IceDelegate] init() called with username:', this.username);
+    this.onAudioCallback = null;
+    this.onAudioMessageCallback = null;
+    this.onIncomingCall = null;
+    this.onCallAccepted = null;
+    this.onCallRejected = null;
+    this.onCallEnded = null;
 
-    if (this.subject) {
-      console.log('[IceDelegate] subject ya inicializado, saltando attachObserver');
-      return;
-    }
-    const hostname = 'localhost';
-
-    const proxySubject = this.communicator.stringToProxy(
-      `Subject:ws -h ${hostname} -p 9099`
-    );
-
-    this.subject = await Demo.SubjectPrx.checkedCast(proxySubject);
-    console.log('[IceDelegate] SubjectPrx obtenido:', this.subject);
-
-    const adapter = await this.communicator.createObjectAdapter('');
-    
-    const conn = this.subject.ice_getCachedConnection();
-    conn.setAdapter(adapter);
-    
-
-    const callbackPrx = Demo.ObserverPrx.uncheckedCast(
-      adapter.addWithUUID(this.subscriber)
-    );
-    console.log('[IceDelegate] ObserverPrx creado, llamando attachObserver con username:', this.username);
-
-    await this.subject.attachObserver(callbackPrx, this.username);
-    console.log('[IceDelegate] attachObserver completado exitosamente');
+    this.subscriber = new Subscriber(this);
   }
 
-  subscribe(callback){
-    // backward compat: subscribe -> audio callbacks
-    this.audioCallbacks.push(callback);
-  }
+  async init(username) {
+    this.name = username;
+    if (this.subject) return;
 
-  subscribeAudio(callback) {
-    this.audioCallbacks.push(callback);
-  }
-
-  subscribeCall(callback) {
-    this.callCallbacks.push(callback);
-  }
-
-  notify(bytes){
-    this.audioCallbacks.forEach(calback => {
-        try { calback(bytes); } catch(e) { console.error('delegate.notify audio cb error', e); }
-    })
-  }
-
-  notifyCallStarted(sessionId, caller, receiver) {
-    this.callCallbacks.forEach(calback => {
-        try { calback(sessionId, caller, receiver); } catch(e) { console.error('delegate.notifyCallStarted cb error', e); }
-    });
-  }
-
-  // Send audio bytes to the Subject via Ice
-  async sendAudio(sessionId, sender, bytes) {
     try {
-      if (!this.subject) {
-        console.warn('[IceDelegate] subject not initialized when sending audio, initializing with username:', this.username);
-        await this.init(this.username);
-      }
-      // Ensure bytes is Uint8Array
-      const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-      await this.subject.sendAudio(sessionId, sender, data);
+      const proxy = this.communicator.stringToProxy(
+        `AudioService:ws -h localhost -p 9099`
+      );
+
+      this.subject = await Demo.SubjectPrx.checkedCast(proxy);
+      if (!this.subject) throw new Error("No se pudo castear SubjectPrx");
+
+      const adapter = await this.communicator.createObjectAdapter("");
+      const callbackPrx = Demo.ObserverPrx.uncheckedCast(
+        adapter.addWithUUID(this.subscriber)
+      );
+      await adapter.activate();
+
+      await this.subject.attachObserver(callbackPrx, this.name);
+
+      console.log("[Delegate] Registrado como:", this.name);
     } catch (err) {
-      console.error('[IceDelegate] Error sending audio via Ice:', err);
+      console.error("[Delegate] Error inicializando:", err);
     }
   }
 
+  async getUsers() {
+    if (!this.subject) return [];
+    return await this.subject.getConnectedUsers();
+  }
+
+  async startCall(target) {
+    if (!this.subject) return;
+    await this.subject.startCall(this.name, target);
+    this.currentCall = target;
+  }
+
+  async acceptCall(fromUser) {
+    if (!this.subject) return;
+    await this.subject.acceptCall(fromUser, this.name);
+    this.currentCall = fromUser;
+  }
+
+  async rejectCall(fromUser) {
+    if (!this.subject) return;
+    await this.subject.rejectCall(fromUser, this.name);
+  }
+
+  async endCall(target) {
+    if (!this.subject || !target) return;
+    await this.subject.endCall(this.name, target);
+
+    if (this.currentCall === target)
+      this.currentCall = null;
+  }
+
+  async sendAudio(byteArray) {
+    if (!this.subject || !this.currentCall) return;
+
+    const data = byteArray instanceof Uint8Array
+      ? byteArray
+      : Uint8Array.from(byteArray);
+
+    await this.subject.sendAudio(this.name, data);
+  }
+
+  async sendAudioMessage(byteArray, receiver) {
+    if (!this.subject) return;
+
+    const data = byteArray instanceof Uint8Array
+      ? byteArray
+      : Uint8Array.from(byteArray);
+
+    await this.subject.sendAudioMessage(this.name, receiver, data);
+  }
+
+  // === Callbacks que usará tu UI ===
+  onAudio(cb) { this.onAudioCallback = cb; }
+  onAudioMessage(cb) { this.onAudioMessageCallback = cb; }
+
+  onIncoming(cb) { 
+    this.onIncomingCall = cb;
+  }
+
+  onAccepted(cb) { this.onCallAccepted = cb; }
+  onRejected(cb) { this.onCallRejected = cb; }
+  onEnded(cb) { this.onCallEnded = cb; }
 }
-const intance = new IceDelegatge();
-export default intance;
+
+export default new IceDelegate();

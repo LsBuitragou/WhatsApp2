@@ -3,6 +3,8 @@ import { sendMessage, startCall } from "../services/UserService.js";
 import delegate from "../services/delegate.js";
 
 export const renderChatPage = (username, contact) => {
+
+  
   const app = document.getElementById("app");
   app.innerHTML = "";
 
@@ -56,32 +58,119 @@ export const renderChatPage = (username, contact) => {
   };
   
   const doCall = async () => {
-    const from = localStorage.getItem("username");
-    const to = contact;
+  const from = localStorage.getItem("username");
+  const to = contact;
 
-    try {
-        await startCall(from, to);
-        alert("Llamada iniciada!");
-    } catch (err) {
-        console.error("Error al iniciar llamada:", err);
-        alert("No se pudo iniciar la llamada: " + (err.message || err.toString()));
-    }
+  try {
+    await startCall(from, to);
+    currentSessionId = to;
+    alert("Llamando a " + to + "...");
+  } catch (err) {
+    console.error("Error al iniciar llamada:", err);
+    alert("No se pudo iniciar la llamada: " + (err.message || err.toString()));
+  }
   };
 
-  const showIncomingCallUI = (sessionId, caller, receiver) => {
-    currentSessionId = sessionId;
-    callDiv.style.display = "block";
-    callDiv.classList.add("active");
-    callStatus.textContent = `Llamada de ${caller}`;
-    // Auto-accept: directly activate the call without waiting for user click
-    console.log('[Chat] Auto-aceptando llamada con sessionId:', sessionId);
-  };
+const showIncomingCallModal = (caller) => {
+  return new Promise((resolve, reject) => {
 
-  const onCallEndedUI = (sessionId) => {
-    currentSessionId = null;
-    callDiv.classList.remove("active");
-    callStatus.textContent = "";
-  };
+    // Overlay
+    const overlay = document.createElement("div");
+    overlay.classList.add("incoming-call-overlay");
+
+    // Modal
+    const modal = document.createElement("div");
+    modal.classList.add("incoming-call-modal");
+
+    // Texto
+    const text = document.createElement("p");
+    text.classList.add("call-text");
+    text.textContent = `${caller} te está llamando`;
+
+    // Botones
+    const btnContainer = document.createElement("div");
+    btnContainer.classList.add("button-container");
+
+    const acceptBtn = document.createElement("button");
+    acceptBtn.textContent = "Aceptar";
+    acceptBtn.classList.add("btn", "accept");
+
+    const rejectBtn = document.createElement("button");
+    rejectBtn.textContent = "Rechazar";
+    rejectBtn.classList.add("btn", "reject");
+
+    btnContainer.appendChild(acceptBtn);
+    btnContainer.appendChild(rejectBtn);
+
+    modal.appendChild(text);
+    modal.appendChild(btnContainer);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      acceptBtn.removeEventListener("click", onAccept);
+      rejectBtn.removeEventListener("click", onReject);
+      overlay.remove();
+    };
+
+    const onAccept = () => {
+      cleanup();
+      resolve(true);
+      currentSessionId = caller;
+      delegate.acceptCall(caller);
+    };
+
+    const onReject = () => {
+      cleanup();
+      resolve(false);
+      delegate.rejectCall(caller);
+    };
+
+    acceptBtn.addEventListener("click", onAccept);
+    rejectBtn.addEventListener("click", onReject);
+  });
+};
+
+delegate.onAccepted(async (fromUser) => {
+  if (fromUser !== contact) return;
+
+  console.log("Llamada aceptada, abriendo micrófono...");
+
+  callDiv.style.display = "flex";
+  callStatus.textContent = "Llamada en curso...";
+
+  try {
+    // 1. Abrir micrófono
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // 2. Capturar audio en chunks
+    const audioContext = new AudioContext({ sampleRate: 44100 });
+    const source = audioContext.createMediaStreamSource(localStream);
+
+    const processor = audioContext.createScriptProcessor(2048, 1, 1);
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    processor.onaudioprocess = (e) => {
+      const input = e.inputBuffer.getChannelData(0);
+
+      // Convert Float32 → PCM16
+      const pcm16 = new Int16Array(input.length);
+      for (let i = 0; i < input.length; i++) {
+        pcm16[i] = Math.max(-1, Math.min(1, input[i])) * 0x7fff;
+      }
+
+      // 3. Enviar audio al otro usuario
+      delegate.sendAudio(pcm16);
+    };
+
+    console.log("Micrófono transmitiendo audio...");
+  } catch (err) {
+    console.error("Error abriendo micrófono:", err);
+    alert("No se pudo acceder al micrófono");
+  }
+});
 
 
   // Reproducción local de audio entrante (callback para delegate)
@@ -111,25 +200,42 @@ export const renderChatPage = (username, contact) => {
     return float32Array;
   };
 
+  delegate.onAudio((pcm16) => playAudioLocal(pcm16));
+
   const endCall = async () => {
     try {
-      console.log("Finalizando llamada...");
+        console.log("Finalizando llamada...");
 
-      if (currentSessionId && delegate && delegate.subject) {
-        await delegate.subject.endCall(currentSessionId);
-      }
+        // 1. Avisar al otro usuario que colgaste
+        if (currentSessionId && delegate?.subject) {
+            await delegate.subject.endCall(currentSessionId);
+        }
 
-      if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-      }
+        // 2. Apagar micrófono y liberar recursos
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+        }
 
-      callDiv.style.display = "none";
-      currentSessionId = null;
+        // 3. Detener audio entrante (si existe cola o buffer)
+        if (audioPlayer && audioPlayer.stop) {
+            audioPlayer.stop();
+        }
+        if (bufferQueue) bufferQueue = [];
+        isPlaying = false;
+
+        // 4. Ocultar UI de llamada
+        callDiv.style.display = "none";
+
+        // 5. Limpiar ID de sesión
+        currentSessionId = null;
+
+        console.log("Llamada finalizada correctamente.");
     } catch (err) {
-      console.error("Error al finalizar llamada:", err);
+        console.error("Error al finalizar llamada:", err);
     }
-  };
+};
+
 
   call.addEventListener("click", doCall);
   hangupBtn.addEventListener("click", endCall);
@@ -201,10 +307,10 @@ export const renderChatPage = (username, contact) => {
   inputContainer.appendChild(sendBtn);
   chatContainer.appendChild(inputContainer);
 
+  delegate.onIncoming((caller) => {
+  showIncomingCallModal(caller);
+  });
 
-  window.renderChatPage_showIncomingCallUI = showIncomingCallUI;
-  window.renderChatPage_onCallEndedUI = onCallEndedUI;
-  window.renderChatPage_endCall = endCall;
 
   app.appendChild(chatContainer);
 };

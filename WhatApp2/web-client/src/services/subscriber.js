@@ -5,43 +5,40 @@ class Subscriber extends Demo.Observer {
         this.delegate = delegate;
     }
 
-    notifyMessage(bytes) {
-        try {
-            console.log('[Subscriber] notifyMessage recibido, bytes:', bytes ? bytes.length : 0);
-            if (this.delegate && this.delegate.notify) {
-                this.delegate.notify(bytes);
-            }
-        } catch (err) {
-            console.error('[Subscriber] Error en notifyMessage:', err);
-        }
+     notifyAudio(bytes) {
+        console.log("[Subscriber] Audio recibido:", bytes.length);
+        if (this.delegate.onAudioCallback)
+            this.delegate.onAudioCallback(bytes);
     }
 
-    onCallStarted(sessionId, caller, receiver) {
-        try {
-            console.log('[Subscriber] onCallStarted recibido con sessionId:', sessionId, 'caller:', caller, 'receiver:', receiver);
-            if (this.delegate && this.delegate.notifyCallStarted) {
-                this.delegate.notifyCallStarted(sessionId, caller, receiver);
-            }
-            if (window.renderChatPage_showIncomingCallUI) {
-                window.renderChatPage_showIncomingCallUI(sessionId, caller, receiver);
-            }
-        } catch (err) {
-            console.error('[Subscriber] Error en onCallStarted:', err);
-        }
+    notifyAudioMessage(bytes) {
+        console.log("[Subscriber] AudioMessage recibido:", bytes.length);
+        if (this.delegate.onAudioMessageCallback)
+            this.delegate.onAudioMessageCallback(bytes);
     }
 
-    onCallEnded(sessionId, caller, receiver) {
-        try {
-            console.log('[Subscriber] onCallEnded recibido con sessionId:', sessionId, 'caller:', caller, 'receiver:', receiver);
-            if (this.delegate && this.delegate.notifyCallEnded) {
-                this.delegate.notifyCallEnded(sessionId, caller, receiver);
-            }
-            if (window.renderChatPage_onCallEndedUI) {
-                window.renderChatPage_onCallEndedUI();
-            }
-        } catch (err) {
-            console.error('[Subscriber] Error en onCallEnded:', err);
-        }
+    incomingCall(sender) {
+        console.log("[Subscriber] Llamada entrante de:", sender);
+        if (this.delegate.onIncomingCall)
+            this.delegate.onIncomingCall(sender);
+    }
+
+    callAccepted(sender) {
+        console.log("[Subscriber] Llamada aceptada por:", sender);
+        if (this.delegate.onCallAccepted)
+            this.delegate.onCallAccepted(sender);
+    }
+
+    callRejected(sender) {
+        console.log("[Subscriber] Llamada rechazada por:", sender);
+        if (this.delegate.onCallRejected)
+            this.delegate.onCallRejected(sender);
+    }
+
+    CallEnded(sender) { 
+        console.log("[Subscriber] Llamada colgada por:", sender);
+        if (this.delegate.onCallEnded)
+            this.delegate.onCallEnded(sender);
     }
 }
 

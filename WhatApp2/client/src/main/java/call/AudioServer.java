@@ -1,7 +1,6 @@
 package call;
 
 import com.zeroc.Ice.*;
-import client.SubjectImpl;
 
 public class AudioServer {
 
@@ -14,7 +13,7 @@ public class AudioServer {
 
             SubjectImpl impl = new SubjectImpl();
 
-            adapter.add(impl, Util.stringToIdentity("Subject"));
+            adapter.add(impl, Util.stringToIdentity("AudioService"));
             adapter.activate();
         
 

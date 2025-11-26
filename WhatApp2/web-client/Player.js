@@ -67,7 +67,7 @@
     Slice.defineOperations(Demo.Subject, Demo.SubjectPrx, iceC_Demo_Subject_ids, 0,
     {
         "attachObserver": [, , , , , [["Demo.ObserverPrx"], [7]], , , , ],
-        "sendAudio": [, , , , , [[7], ["Demo.BytesHelper"]], , , , ],
+        "sendAudio": [, , , , , [[7], [7], ["Demo.BytesHelper"]], , , , ],
         "sendAudioMessage": [, , , , , [[7], [7], ["Demo.BytesHelper"]], , , , ],
         "getConnectedUsers": [, , , , ["Demo.stringSeqHelper"], , , , , ],
         "startCall": [, , , , [7], [[7], [7]], , , , ],
