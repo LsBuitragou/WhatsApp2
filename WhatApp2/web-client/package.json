@@ -12,8 +12,8 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^1.13.2",
-    "serve": "^14.2.5",
-    "ice": "^3.7.100"
+    "ice": "^3.7.100",
+    "serve": "^14.2.5"
   },
   "devDependencies": {
     "copy-webpack-plugin": "^13.0.1",

@@ -56,4 +56,14 @@ subprojects {
             )
         }
     }
+    project(':whatsapp') {
+  apply plugin: 'application'
+  application { mainClass = 'server.TCPServer' }
+}
+
+project(':client') {
+  apply plugin: 'application'
+  application { mainClass = 'call.AudioServer' }
+}
+
 }

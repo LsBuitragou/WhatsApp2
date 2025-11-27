@@ -1,45 +1,43 @@
-
 class Subscriber extends Demo.Observer {
-    constructor(delegate) {
-        super();
-        this.delegate = delegate;
-    }
+  constructor(delegate) {
+    super();
+    this.delegate = delegate;
+  }
 
-     notifyAudio(bytes) {
-        console.log("[Subscriber] Audio recibido:", bytes.length);
-        if (this.delegate.onAudioCallback)
-            this.delegate.onAudioCallback(bytes);
-    }
+  notifyAudio(bytes) {
+    // bytes suele llegar como Uint8Array/Array
+    const u8 =
+      bytes instanceof Uint8Array ? bytes :
+      Array.isArray(bytes) ? Uint8Array.from(bytes) :
+      new Uint8Array(bytes);
 
-    notifyAudioMessage(bytes) {
-        console.log("[Subscriber] AudioMessage recibido:", bytes.length);
-        if (this.delegate.onAudioMessageCallback)
-            this.delegate.onAudioMessageCallback(bytes);
-    }
+    if (this.delegate.onAudioCallback) this.delegate.onAudioCallback(u8);
+  }
 
-    incomingCall(sender) {
-        console.log("[Subscriber] Llamada entrante de:", sender);
-        if (this.delegate.onIncomingCall)
-            this.delegate.onIncomingCall(sender);
-    }
+  notifyAudioMessage(bytes) {
+    const u8 =
+      bytes instanceof Uint8Array ? bytes :
+      Array.isArray(bytes) ? Uint8Array.from(bytes) :
+      new Uint8Array(bytes);
 
-    callAccepted(sender) {
-        console.log("[Subscriber] Llamada aceptada por:", sender);
-        if (this.delegate.onCallAccepted)
-            this.delegate.onCallAccepted(sender);
-    }
+    if (this.delegate.onAudioMessageCallback) this.delegate.onAudioMessageCallback(u8);
+  }
 
-    callRejected(sender) {
-        console.log("[Subscriber] Llamada rechazada por:", sender);
-        if (this.delegate.onCallRejected)
-            this.delegate.onCallRejected(sender);
-    }
+  incomingCall(sender) {
+    if (this.delegate.onIncomingCall) this.delegate.onIncomingCall(sender);
+  }
 
-    CallEnded(sender) { 
-        console.log("[Subscriber] Llamada colgada por:", sender);
-        if (this.delegate.onCallEnded)
-            this.delegate.onCallEnded(sender);
-    }
+  callAccepted(sender) {
+    if (this.delegate.onCallAccepted) this.delegate.onCallAccepted(sender);
+  }
+
+  callRejected(sender) {
+    if (this.delegate.onCallRejected) this.delegate.onCallRejected(sender);
+  }
+
+  CallEnded(sender) {
+    if (this.delegate.onCallEnded) this.delegate.onCallEnded(sender);
+  }
 }
 
 export default Subscriber;
