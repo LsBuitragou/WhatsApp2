@@ -28,7 +28,7 @@ Para hablar directamente con alguien, solo se debe hacer clic en el nombre de la
 En cuanto a los chats grupales, al presionar el botón “Grupos” se mostrarán todos los grupos existentes (si los hay).
 El sistema también permite crear nuevos grupos y, cuando ya existen, añadir personas a ellos.
 
-Descripción del flujo de comunicación entre cliente, proxy y backend
+Descripción del flujo de comunicación entre el cliente, proxy y backend
 
 El sistema está compuesto por tres subproyectos: web-client, proxy y backend (Wasap). Cada uno cumple un rol específico dentro del flujo de comunicación.
 
