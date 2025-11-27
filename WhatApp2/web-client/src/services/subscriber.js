@@ -5,7 +5,6 @@ class Subscriber extends Demo.Observer {
   }
 
   notifyAudio(bytes) {
-    // bytes suele llegar como Uint8Array/Array
     const u8 =
       bytes instanceof Uint8Array ? bytes :
       Array.isArray(bytes) ? Uint8Array.from(bytes) :

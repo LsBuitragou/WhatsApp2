@@ -53,7 +53,7 @@ export const renderChatPage = (username, contact) => {
   titleRow.appendChild(voiceBtn);
   chatContainer.appendChild(titleRow);
 
-  // Alert box (llamando...)
+  // Alert box
   const alertBox = document.createElement("h2");
   alertBox.classList.add("alert-box");
   alertBox.style.display = "none";
@@ -91,7 +91,7 @@ export const renderChatPage = (username, contact) => {
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
   };
 
-  // ===== ICE ready =====
+  // ===== ICE =====
   const ensureIceReady = async () => {
     if (delegate?.subject) return;
     if (typeof delegate?.init === "function") {
@@ -101,7 +101,7 @@ export const renderChatPage = (username, contact) => {
     throw new Error("ICE no está inicializado (delegate.subject no existe y no hay delegate.init).");
   };
 
-  // Conectar ICE al abrir chat (para recibir aunque no mandes)
+  // Conectar ICE al abrir chat
   ensureIceReady()
     .then(() => append("system", "ICE WS conectado (listo para recibir notas/llamadas)."))
     .catch((e) => append("error", "ICE WS NO conectado: " + (e?.message || e)));
@@ -196,7 +196,7 @@ export const renderChatPage = (username, contact) => {
     else stopVoiceRecording();
   });
 
-  // ===== UI llamadas (estilo colega) =====
+  // ===== UI llamadas  =====
   let activeCallModalOverlay = null;
 
   const showActiveCallModal = (other) => {
@@ -256,7 +256,6 @@ export const renderChatPage = (username, contact) => {
     try { localStream?.getTracks().forEach((t) => t.stop()); } catch {}
     localStream = null;
 
-    // reset playback scheduler
     playTime = 0;
   };
 
@@ -283,7 +282,6 @@ export const renderChatPage = (username, contact) => {
           pcm16[i] = (s * 0x7fff) | 0;
         }
 
-        // ✅ enviar PCM16 real (bytes), NO Uint8Array.from(Int16Array)
         delegate.sendAudio(pcm16);
       };
 
@@ -301,7 +299,7 @@ export const renderChatPage = (username, contact) => {
     const len = Math.floor(u8.byteLength / 2);
     const out = new Float32Array(len);
     for (let i = 0; i < len; i++) {
-      const s = dv.getInt16(i * 2, true); // ✅ little-endian
+      const s = dv.getInt16(i * 2, true);
       out[i] = s / 32768;
     }
     return out;
@@ -319,7 +317,6 @@ export const renderChatPage = (username, contact) => {
       src.buffer = buffer;
       src.connect(playCtx.destination);
 
-      // scheduler simple para reducir gaps
       const now = playCtx.currentTime;
       if (playTime < now) playTime = now;
       src.start(playTime);
@@ -331,7 +328,7 @@ export const renderChatPage = (username, contact) => {
 
   // ===== Callbacks ICE =====
   delegate.onIncoming(async (caller) => {
-    // Modal incoming
+
     const overlay = document.createElement("div");
     overlay.classList.add("incoming-call-overlay");
 
@@ -370,7 +367,7 @@ export const renderChatPage = (username, contact) => {
         await delegate.acceptCall(caller);
 
         showActiveCallModal(caller);
-        await startStreaming(caller); // ✅ el que acepta también debe empezar a streamear aquí
+        await startStreaming(caller);
       } catch (e) {
         console.error("acceptCall error:", e);
       }
@@ -387,7 +384,6 @@ export const renderChatPage = (username, contact) => {
     });
   });
 
-  // OJO: el callAccepted solo le llega al que llamó (caller)
   delegate.onAccepted(async (other) => {
     if (other !== contact) return;
     showActiveCallModal(other);
@@ -410,7 +406,6 @@ export const renderChatPage = (username, contact) => {
 
   delegate.onAudio((pcmBytes) => playCallChunk(pcmBytes));
 
-  // ✅ Nota de voz entrante
   delegate.onAudioMessage((bytes) => {
     try {
       const u8 =

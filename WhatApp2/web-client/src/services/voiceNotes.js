@@ -10,13 +10,13 @@ function pickMimeType() {
   for (const t of candidates) {
     if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
   }
-  return ""; // el browser decide
+  return "";
 }
 
 function arrayBufferToBase64(buf) {
   const bytes = new Uint8Array(buf);
   let binary = "";
-  const chunkSize = 0x8000; // evita stack overflow
+  const chunkSize = 0x8000; // stack overflow
   for (let i = 0; i < bytes.length; i += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
   }
@@ -40,12 +40,11 @@ export async function recordVoiceNote({ maxMs = 15000 } = {}) {
 
   recorder.start();
 
-  // stop automático por seguridad
+  // stop automático
   const timer = setTimeout(() => {
     if (recorder.state !== "inactive") recorder.stop();
   }, maxMs);
 
-  // devuelvo control para que tú pares manualmente en UI
   return {
     stop: async () => {
       clearTimeout(timer);
@@ -64,12 +63,10 @@ export async function recordVoiceNote({ maxMs = 15000 } = {}) {
 }
 
 export async function sendVoiceNote({ from, scope, target, mime, b64 }) {
-  // Asegúrate de tener ICE listo
   if (!delegate.subject) await delegate.init(from);
 
   const payload = `VN1|${from}|${scope}|${target}|${mime}|${b64}`;
   const bytes = new TextEncoder().encode(payload);
 
-  // sessionId="VN" => el servidor lo trata como voice note
   await delegate.subject.sendAudio("VN", from, bytes);
 }

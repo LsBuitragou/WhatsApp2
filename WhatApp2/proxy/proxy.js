@@ -11,7 +11,7 @@ const BACKEND_PORT = process.env.BACKEND_PORT ? parseInt(process.env.BACKEND_POR
 const clients = new Map();
 // username -> Set<res SSE>
 const sseClients = new Map();
-// Lista simple de grupos (viva mientras corre el proxy)
+// Lista de grupos
 const groups = new Set();
 
 const app = express();

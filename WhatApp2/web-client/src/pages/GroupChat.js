@@ -44,7 +44,7 @@ export const renderGroupChatPage = (username, group) => {
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     };
 
-    // Auto-join (silencioso)
+    // Auto-join
     (async () => {
       try {
         const r = await joinGroup(username, group);

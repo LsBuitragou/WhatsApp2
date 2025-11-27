@@ -98,14 +98,13 @@ export const renderGroupsPage = (username) => {
     try {
       await createGroup(username, g);
       inp.value = "";
-      // La lista también se actualizará por SSE, pero recargamos por si acaso
+      
       renderList();
     } catch (e) {
       alert("No se pudo crear el grupo");
     }
   });
 
-  // SSE para recibir actualizaciones de la lista de grupos
   try {
     if (window.__groupsSSE && window.__groupsSSE.username === username) {
       try { window.__groupsSSE.es.close(); } catch {}
@@ -117,7 +116,6 @@ export const renderGroupsPage = (username) => {
   es.addEventListener("groups", (ev) => {
     try {
       const payload = JSON.parse(ev.data);
-      // Redibuja la lista con payload.groups
       ul.innerHTML = "";
       const items = (payload.groups || []);
       if (!items.length) {

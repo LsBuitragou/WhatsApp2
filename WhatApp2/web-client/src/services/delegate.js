@@ -23,7 +23,7 @@ class IceDelegate {
   }
 
   async init(username, callbacks = null) {
-    // Permite init estilo colega: init(username, { notifyAudio, notifyAudioMessage, incomingCall, callAccepted, callRejected, callEnded })
+
     if (callbacks && typeof callbacks === "object") {
       if (callbacks.notifyAudio) this.onAudioCallback = callbacks.notifyAudio;
       if (callbacks.notifyAudioMessage) this.onAudioMessageCallback = callbacks.notifyAudioMessage;
@@ -44,13 +44,11 @@ class IceDelegate {
       this.subject = await Demo.SubjectPrx.checkedCast(base);
       if (!this.subject) throw new Error("No se pudo castear SubjectPrx");
 
-      // Crear adapter callbacks
       const adapter = await this.communicator.createObjectAdapter("");
       const cbObj = adapter.addWithUUID(this.subscriber);
       const callbackPrx = Demo.ObserverPrx.uncheckedCast(cbObj);
       await adapter.activate();
 
-      // ✅ CRÍTICO: bidirectional bien hecho (fuerza conexión real + setAdapter)
       await this.subject.ice_ping();
       const conn = await this.subject.ice_getConnection();
       conn.setAdapter(adapter);
@@ -102,7 +100,6 @@ class IceDelegate {
   async sendAudio(pcm16) {
     if (!this.subject || !this.currentCall) return;
 
-    // ✅ Si viene Int16Array => mandar BYTES reales (little-endian)
     let data;
     if (pcm16 instanceof Int16Array) {
       data = new Uint8Array(pcm16.buffer, pcm16.byteOffset, pcm16.byteLength);
@@ -131,7 +128,7 @@ class IceDelegate {
     await this.subject.sendAudioMessage(this.name, receiver, data);
   }
 
-  // === Setters estilo tu UI ===
+  // === Setters UI ===
   onAudio(cb) { this.onAudioCallback = cb; }
   onAudioMessage(cb) { this.onAudioMessageCallback = cb; }
   onIncoming(cb) { this.onIncomingCall = cb; }
